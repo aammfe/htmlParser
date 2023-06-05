@@ -3,8 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module Html(Html(..), ValidHtml(..), TagName(..), 
-            TextContent(..), AttributeName(..), AttributeTextualValue(..), 
+module Html(Html(..), ValidHtml(..), TagName(..),
+            TextContent(..), AttributeName(..), AttributeTextualValue(..),
             Attribute(..), AttributeValue(..), selfClosingTags ) where
 
 import Data.Text (Text)
@@ -14,14 +14,14 @@ import           Control.Monad             (replicateM)
 import           Data.String               (IsString (fromString))
 
 
-data ValidHtml = ValidHtml Text
+newtype ValidHtml = ValidHtml Text
     deriving (Show, Eq)
 
 
-data TagName = TagName Text
-    deriving (Eq,Show)
+newtype TagName = TagName Text
+    deriving (Eq,Show, Ord)
 
-data TextContent = TextContent Text
+newtype TextContent = TextContent Text
     deriving (Show, Eq)
 
 instance Arbitrary TextContent where
@@ -36,7 +36,7 @@ data Html = SelfClosingTag TagName [Attribute]
 
 
 instance Arbitrary Html where
-    arbitrary = do 
+    arbitrary = do
         x :: Int <- elements [1,2,3,4,5]
         case x of
             1 -> SelfClosingTag <$> (TagName <$> elements selfClosingTags) <*> arbitrary
@@ -50,15 +50,15 @@ manuallyClosingTags = ["p" , "lu", "li", "dt", "dd", "h1", "h2", "h3", "h4", "h5
 
 
 
-data AttributeName = AttributeName Text
-    deriving (Show, Eq)
+newtype AttributeName = AttributeName Text
+    deriving (Show, Eq, Ord)
 
 
 instance Arbitrary AttributeName where
     arbitrary = AttributeName <$> genText
 
 
-data AttributeTextualValue = AttributeTextualValue Text
+newtype AttributeTextualValue = AttributeTextualValue Text
     deriving (Show, Eq)
 
 
@@ -79,7 +79,7 @@ data AttributeValue = Str AttributeTextualValue | Dou Double | Integ Integer | N
 
 
 instance Arbitrary AttributeValue where
-    arbitrary = do 
+    arbitrary = do
         x :: Int <- elements [1,2,3,4]
         case x of
             1 -> Str <$> arbitrary
@@ -90,7 +90,7 @@ instance Arbitrary AttributeValue where
 
 genText :: Gen Text
 genText = do
-    l <- resize 10 $ arbitrary `suchThat` (\i -> i > 0)
+    l <- resize 10 $ arbitrary `suchThat` (> 0)
     let g = elements $ ['A'.. 'Z'] ++ ['a' .. 'z'] ++ ['0'..'9']
     fromString <$> replicateM l g
 
