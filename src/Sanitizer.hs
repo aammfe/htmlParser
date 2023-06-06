@@ -10,10 +10,6 @@ import Network.URI (uriScheme, parseURIReference, URI (..), isAllowedInURI, esca
 import Codec.Binary.UTF8.String ( encodeString )
 
 
-import Parser
-import Text.Parsec
-
-
 senitize :: [Tag] -> [Tag]
 senitize = map senitizeTag . filter isSafeTag
 
@@ -76,10 +72,3 @@ isSafeURI (AttributeValue _ u) =
      Just p  -> null (uriScheme p) ||
                 member (toLower . pack . init . uriScheme $ p) safeURISchemes
      Nothing -> False
-
-
-
-i :: Attribute
-i = Attribute {attrName = AttributeName "src", attrValue = Just (AttributeValue Str "javascript:alert('XS');")}
-
-j= isUrlAttributes . AttributeName $ "src"
