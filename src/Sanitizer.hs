@@ -4,10 +4,6 @@
 module Sanitizer where
 
 import Html
-    ( AttributeName(..),
-      TagName(..),
-      AttributeValue(..),
-      Attribute(..))
 import Data.Set (Set(), member, fromList)
 import Data.Text(isPrefixOf,toLower, Text, unpack, pack)
 import Network.URI (uriScheme, parseURIReference, URI (..), isAllowedInURI, escapeURIString)
@@ -29,9 +25,7 @@ isSafeTag (SelfClosingTag n _)
     = not . isForbiddenTagName $ n
 isSafeTag (ManuallyClosingTag n _ _)
     = not . isForbiddenTagName $ n
-isSafeTag (JustText _)
-    = True
-isSafeTag (Style _ _)
+isSafeTag _
     = True
 
 senitizeTag :: Tag -> Tag
@@ -61,7 +55,7 @@ isUrlAttributes n = member n urlAttributes
 
 
 urlAttributes :: Set AttributeName
-urlAttributes = fromList $ AttributeName <$> ["url", "href", "action"]
+urlAttributes = fromList $ AttributeName <$> ["url", "href", "action", "background", "dynsrc", "lowsrc", "src"]
 
 
 isCallBackAttribute :: AttributeName -> Bool
@@ -85,14 +79,7 @@ isSafeURI (AttributeValue _ u) =
 
 
 
-totallySkipScript :: Either ParseError [Tag]
-totallySkipScript = senitize  <$> parseHtml (ValidHtml "<script>doSomethingEvil();</script>")
+i :: Attribute
+i = Attribute {attrName = AttributeName "src", attrValue = Just (AttributeValue Str "javascript:alert('XS');")}
 
-totallySkipCallBackTags :: Either ParseError [Tag]
-totallySkipCallBackTags = senitize <$> parseHtml (ValidHtml "<body onload=alert('XSS')></body>")
-
-
-i :: Either ParseError [Tag]
-i = senitize <$> parseHtml (ValidHtml "<input class=\"site-search-input\" placeholder=\"\" style=\"background: url(\&quot;https://www.google.com/cse/static/images/1x/en/branding.png\&quot;) left 9px top 50% no-repeat rgb(255, 255, 255);\">")
-
-
+j= isUrlAttributes . AttributeName $ "src"

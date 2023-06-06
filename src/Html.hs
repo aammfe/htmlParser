@@ -32,6 +32,7 @@ data Tag = SelfClosingTag TagName [Attribute]
           | JustText TextContent
           | Script [Attribute] TextContent
           | Style [Attribute] TextContent
+          | Comment TextContent
     deriving (Show, Eq)
 
 

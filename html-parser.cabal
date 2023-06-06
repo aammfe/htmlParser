@@ -64,6 +64,8 @@ test-suite html-parser-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      ParserSpec
+      SanitizerSpec
       Paths_html_parser
   hs-source-dirs:
       test
