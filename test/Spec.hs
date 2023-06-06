@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Test.Hspec
-import Lib(parseHtml, ValidHtml(..))
+import Parser (parseHtml, ValidHtml(..))
 import Data.Either  (isRight)
 
 

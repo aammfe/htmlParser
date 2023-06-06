@@ -13,7 +13,6 @@ author:         Author name here
 maintainer:     example@example.com
 copyright:      2023 Author name here
 license:        BSD3
-license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
@@ -26,7 +25,8 @@ source-repository head
 library
   exposed-modules:
       Html
-      Lib
+      Parser
+      Sanitizer
   other-modules:
       Paths_html_parser
   hs-source-dirs:
@@ -35,8 +35,11 @@ library
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , containers
+    , network-uri
     , parsec
     , text
+    , utf8-string
   default-language: Haskell2010
 
 executable html-parser-exe
@@ -49,9 +52,12 @@ executable html-parser-exe
   build-depends:
       QuickCheck
     , base >=4.7 && <5
+    , containers
     , html-parser
+    , network-uri
     , parsec
     , text
+    , utf8-string
   default-language: Haskell2010
 
 test-suite html-parser-test
@@ -66,9 +72,12 @@ test-suite html-parser-test
       HUnit
     , QuickCheck
     , base >=4.7 && <5
+    , containers
     , hspec
     , hspec-contrib
     , html-parser
+    , network-uri
     , parsec
     , text
+    , utf8-string
   default-language: Haskell2010

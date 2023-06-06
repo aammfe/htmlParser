@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Lib (parseHtml, Html(..), ValidHtml(..)) where
+module Parser (parseHtml, Tag(..), ValidHtml(..)) where
 
-import Text.Parsec (parse, try, anyChar, manyTill,eof, noneOf, lookAhead, ParseError, letter, alphaNum, oneOf)
+import Text.Parsec (parse, try, anyChar, manyTill,eof, noneOf, lookAhead, ParseError, letter, alphaNum, oneOf, )--parserTrace)
 import qualified Text.Parsec.Token as PT
-import Text.Parsec.Token      (GenLanguageDef(..))  
+import Text.Parsec.Token      (GenLanguageDef(..))
 import Data.Functor.Identity (Identity)
 import Text.Parsec.Text (Parser)
 import Text.Parsec.Char (char)
@@ -16,13 +16,13 @@ import Data.Text (Text, unpack, pack)
 import Html
 
 
-parseHtml :: ValidHtml -> Either ParseError [Html]
+parseHtml :: ValidHtml -> Either ParseError [Tag]
 parseHtml (ValidHtml content) = parse (htmlParser eof) "" content
 
 
 config :: forall u . PT.GenTokenParser Text u Identity
 config = PT.makeTokenParser htmlDef
-        where htmlDef = PT.LanguageDef 
+        where htmlDef = PT.LanguageDef
                { commentStart   = ""
                , commentEnd     = ""
                , commentLine    = ""
@@ -45,29 +45,22 @@ identifier :: Parser Text
 identifier = pack <$> try (some $ noneOf "<> /=\n\r\t\\&$")
 
 
-integer :: Parser Integer
-integer = PT.integer config
+string :: Text -> Parser Text
+string x = pack <$> (Char.string . unpack $ x)
 
 
 stringLiteral :: Parser Text
 stringLiteral = pack <$> PT.stringLiteral config
 
 
-string :: Text -> Parser Text
-string x = pack <$> (Char.string . unpack $ x)
-
-
-float :: Parser Double
-float = PT.float config
-
-
-htmlParser :: Parser () -> Parser [Html]
+htmlParser :: Parser () -> Parser [Tag]
 htmlParser till = manyTill p till where
     p = styleTag <|> scriptTag <|> selfClosingTag <|> manuallyClosingTag <|> justText till
 
 
-scriptTag :: Parser Html
+scriptTag :: Parser Tag
 scriptTag = do
+  --  parserTrace "scriptTag"
     try . void . lexeme . string $ "<script"
     attrs <- many . lexeme $ attribute
     void . lexeme $ char '>'
@@ -78,8 +71,9 @@ scriptTag = do
     return . Script attrs . TextContent . pack $ content
 
 
-styleTag :: Parser Html
+styleTag :: Parser Tag
 styleTag = do
+  --  parserTrace "styleTag"
     try . void . lexeme . string $ "<style"
     attrs <- many . lexeme $ attribute
     void . lexeme $ char '>'
@@ -90,19 +84,21 @@ styleTag = do
     return . Style attrs . TextContent . pack $ content
 
 
-justText :: Parser () -> Parser Html
+justText :: Parser () -> Parser Tag
 justText till' = do
-    let till = lookAhead $ (till' <|> (void . char $ '<') <|> eof)
+  --  parserTrace "justText"
+    let till = lookAhead (till' <|> (void . char $ '<') <|> eof)
     content <- lexeme $ pack <$> manyTill anyChar till
     return . JustText . TextContent $ content
 
 
 selfClosingTagName :: Parser Text
-selfClosingTagName = asum $ (try . string) <$> selfClosingTags
+selfClosingTagName = asum $ try . string <$> selfClosingTags
 
 
-selfClosingTag :: Parser Html
+selfClosingTag :: Parser Tag
 selfClosingTag = do
+ --   parserTrace "selfClosingTag"
     tagName <- try $ do
         void . lexeme $ char '<'
         lexeme selfClosingTagName
@@ -111,8 +107,9 @@ selfClosingTag = do
     return . SelfClosingTag (TagName tagName) $ attrs
 
 
-manuallyClosingTag :: Parser Html
+manuallyClosingTag :: Parser Tag
 manuallyClosingTag = do
+ --   parserTrace "manuallyClosingTag"
     (tagName, attrs) <- try $ do
         void . lexeme $ char '<'
         tagName <- lexeme identifier
@@ -131,9 +128,12 @@ manuallyClosingTag = do
 
 attribute :: Parser Attribute
 attribute = do
+  -- parserTrace "attribute"
    name <- lexeme identifier
-   value <- lexeme $ lexeme valuedAttr <|> return NoValue
+   value <- lexeme $ lexeme valuedAttr <|> return Nothing
    return $ Attribute (AttributeName name) value
    where valuedAttr = do
             void . char $ '='
-            lexeme $ (Str . AttributeTextualValue <$> stringLiteral) <|> try (Dou <$> float) <|> (Integ <$> integer)
+            lexeme $ lit <|> anyValueOtherThenStrLit
+         lit = Just . AttributeValue Str <$> stringLiteral
+         anyValueOtherThenStrLit = Just . AttributeValue LiteralStr . pack <$> (manyTill anyChar . try . lookAhead .oneOf $ " >")

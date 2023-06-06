@@ -3,9 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 
-module Html(Html(..), ValidHtml(..), TagName(..),
-            TextContent(..), AttributeName(..), AttributeTextualValue(..),
-            Attribute(..), AttributeValue(..), selfClosingTags ) where
+module Html(Tag(..), ValidHtml(..), TagName(..),
+            TextContent(..), AttributeName(..), AttributeValue(..),
+            Attribute(..), AttributeValueType(..), selfClosingTags ) where
 
 import Data.Text (Text)
 import           Test.QuickCheck.Arbitrary (Arbitrary (..))
@@ -27,15 +27,15 @@ newtype TextContent = TextContent Text
 instance Arbitrary TextContent where
     arbitrary = TextContent <$> genText
 
-data Html = SelfClosingTag TagName [Attribute]
-          | ManuallyClosingTag TagName [Attribute] [Html]
+data Tag = SelfClosingTag TagName [Attribute]
+          | ManuallyClosingTag TagName [Attribute] [Tag]
           | JustText TextContent
           | Script [Attribute] TextContent
           | Style [Attribute] TextContent
     deriving (Show, Eq)
 
 
-instance Arbitrary Html where
+instance Arbitrary Tag where
     arbitrary = do
         x :: Int <- elements [1,2,3,4,5]
         case x of
@@ -58,34 +58,26 @@ instance Arbitrary AttributeName where
     arbitrary = AttributeName <$> genText
 
 
-newtype AttributeTextualValue = AttributeTextualValue Text
+data AttributeValueType = LiteralStr | Str 
+    deriving (Show,Eq)
+
+instance Arbitrary AttributeValueType where
+    arbitrary = elements [LiteralStr, Str]
+
+data AttributeValue = AttributeValue AttributeValueType Text
     deriving (Show, Eq)
 
 
-instance Arbitrary AttributeTextualValue where
-    arbitrary = AttributeTextualValue <$> genText
+instance Arbitrary AttributeValue where
+    arbitrary = AttributeValue <$> arbitrary <*> genText
 
 
-data Attribute = Attribute { attrName :: AttributeName, attrValue :: AttributeValue }
+data Attribute = Attribute { attrName :: AttributeName, attrValue ::  Maybe AttributeValue }
     deriving (Show, Eq)
 
 
 instance Arbitrary Attribute where
     arbitrary = Attribute <$> arbitrary <*> arbitrary
-
-
-data AttributeValue = Str AttributeTextualValue | Dou Double | Integ Integer | NoValue
-    deriving (Show,Eq)
-
-
-instance Arbitrary AttributeValue where
-    arbitrary = do
-        x :: Int <- elements [1,2,3,4]
-        case x of
-            1 -> Str <$> arbitrary
-            2 -> Dou <$> arbitrary
-            3 -> Integ <$> arbitrary
-            _ -> return NoValue
 
 
 genText :: Gen Text

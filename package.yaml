@@ -24,6 +24,9 @@ dependencies:
 - text
 - parsec
 - QuickCheck
+- containers
+- network-uri
+- utf8-string
 
 ghc-options:
 - -Wall
